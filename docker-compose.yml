@@ -1,0 +1,80 @@
+services:
+  # Ollama corre DENTRO de Docker, como parte del stack. Así todo el
+  # proyecto se levanta con "docker compose up" en cualquier servidor
+  # que tenga Docker, sin instalar nada aparte.
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Descomenta si quieres poder llamar a Ollama también desde fuera de Docker:
+    # ports:
+    #   - "11434:11434"
+
+  # Servicio de una sola corrida: descarga los modelos dentro del volumen
+  # de Ollama. Se ejecuta una vez con:
+  #   docker compose run --rm ollama-init
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "until ollama list >/dev/null 2>&1; do sleep 1; done &&
+       ollama pull nomic-embed-text"
+    profiles:
+      - tools
+
+  # Servicio de ingesta: procesa los PDFs y genera el vector store.
+  # No corre solo; se ejecuta manualmente con:
+  #   docker compose run --rm ingest
+  ingest:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # Dentro de la red de Docker, "ollama" es el nombre del servicio
+      # (Docker lo resuelve como si fuera un hostname). Esto sobreescribe
+      # cualquier OLLAMA_BASE_URL que tengas en .env para uso local.
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+    volumes:
+      - ./vector_store:/app/vector_store
+      - ./data:/app/data
+    command: python ingestion/embed_and_store.py
+    depends_on:
+      - ollama
+    profiles:
+      - tools   # evita que "docker compose up" lo levante por accidente
+
+  api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./vector_store:/app/vector_store
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - ollama
+
+  frontend:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./vector_store:/app/vector_store
+    command: streamlit run frontend/app.py --server.address=0.0.0.0 --server.port=8501
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_data:

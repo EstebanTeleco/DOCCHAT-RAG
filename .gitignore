@@ -1,0 +1,31 @@
+# Entornos virtuales
+venv/
+source/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Secretos - NUNCA subir esto
+.env
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+.dockerignore
+
+# Vector store generado (se recrea con embed_and_store.py)
+vector_store/
+
+# Resultados de evaluación (se regeneran al correr evaluate.py)
+evaluation/eval_results.json
