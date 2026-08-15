@@ -1,0 +1,42 @@
+[
+  {
+    "question": "¿En qué universidad estudió Esteban y qué carrera?",
+    "expected_source": "CV_Esteban_Covenas.pdf",
+    "expected_keywords": ["San Marcos", "Telecomunicaciones"]
+  },
+  {
+    "question": "¿Qué modelo se usó para el fine-tuning del clasificador de tickets de soporte?",
+    "expected_source": "Proyectos.pdf",
+    "expected_keywords": ["Llama-3.2-3B", "QLoRA"]
+  },
+  {
+    "question": "¿Qué deportes o actividades físicas practica Esteban?",
+    "expected_source": "sobre_mi.pdf",
+    "expected_keywords": ["natación", "running", "baile"]
+  },
+  {
+    "question": "¿En qué empresa trabajó Esteban como Preventa TI?",
+    "expected_source": "CV_Esteban_Covenas.pdf",
+    "expected_keywords": ["OLC Ingenieros"]
+  },
+  {
+    "question": "¿Qué accuracy obtuvo el modelo TF-IDF + Regresión Logística en el proyecto de clasificación de tickets?",
+    "expected_source": "Proyectos.pdf",
+    "expected_keywords": ["95.0", "95%"]
+  },
+  {
+    "question": "¿Por qué Esteban decidió pasar de telecomunicaciones a Inteligencia Artificial?",
+    "expected_source": "sobre_mi.pdf",
+    "expected_keywords": ["revolución industrial", "transformar"]
+  },
+  {
+    "question": "¿Cuál es la capital de Francia?",
+    "expected_source": "__NONE__",
+    "expected_keywords": ["no tengo esa información", "no puedo", "no está en", "no tiene relación", "no está relacionada"]
+  },
+  {
+    "question": "¿Cuál es la fórmula para resolver una ecuación cuadrática?",
+    "expected_source": "__NONE__",
+    "expected_keywords": ["no tengo esa información", "no puedo", "no está en", "no tiene relación", "no está relacionada"]
+  }
+]
