@@ -11,6 +11,7 @@ Está corriendo en vivo en mi página personal, en el botón **"Pregúntale a mi
 3. Cuando llega una pregunta, se busca por similitud los chunks más relevantes.
 4. Esos chunks se meten en el prompt junto con la pregunta y se le pasan al LLM (vía Groq, modelo `gpt-oss-120b`), que tiene que citar de dónde sacó cada dato.
 5. Antes de mostrar la respuesta, las citas `[1]`, `[2]`, etc. se reemplazan por el archivo y la página real, tomados directo de la metadata de ChromaDB (no confío en que el modelo la escriba bien).
+6. El frontend de Streamlit no llama directo a la lógica del RAG: le pega por HTTP al endpoint `POST /chat` de la API, igual que lo haría cualquier otro cliente (Postman, otro frontend, etc.).
 
 Los embeddings se generan en local con Ollama porque es un modelo chico y corre bien hasta en una máquina sin GPU. La generación de la respuesta sí necesita un modelo más grande, así que esa parte va por la API de Groq — es gratis para este volumen de uso y la latencia es bastante mejor que intentar correr algo similar en una instancia chica.
 
@@ -28,12 +29,15 @@ docchat/
 ├── generation/
 │   └── rag_chain.py        arma el prompt final y llama al LLM (Groq)
 ├── api/
-│   └── main.py             FastAPI, expone POST /chat
+│   └── main.py             FastAPI, expone GET /health y POST /chat
 ├── frontend/
-│   └── app.py              interfaz de chat con Streamlit
+│   └── app.py              interfaz de chat con Streamlit, consume la API por HTTP
 ├── evaluation/
 │   ├── test_questions.json dataset de preguntas de prueba
 │   └── evaluate.py         mide retrieval accuracy y keyword accuracy
+├── tests/
+│   ├── test_chunker.py     tests unitarios del chunking
+│   └── test_api.py         tests del endpoint /health
 ├── vector_store/           se genera al correr embed_and_store.py
 └── requirements.txt
 ```
@@ -47,7 +51,7 @@ source venv/bin/activate       # en Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Copiar `.env.example` a `.env` y completar la `GROQ_API_KEY` (se saca gratis en [console.groq.com](https://console.groq.com)). Si vas a correr los scripts fuera de Docker, dejá `OLLAMA_BASE_URL` apuntando a tu Ollama local (por defecto `http://localhost:11434/v1`).
+Copiar `.env.example` a `.env` y completar la `GROQ_API_KEY` (se saca gratis en [console.groq.com](https://console.groq.com)). Si vas a correr los scripts fuera de Docker, dejá `OLLAMA_BASE_URL` apuntando a tu Ollama local (por defecto `http://localhost:11434/v1`). `API_URL` le dice a Streamlit dónde encontrar la API (por defecto `http://localhost:8000`; en Docker se sobreescribe solo).
 
 ```bash
 cp .env.example .env
@@ -73,7 +77,7 @@ Para probar rápido por consola:
 python generation/rag_chain.py
 ```
 
-Levantar la API:
+Levantar la API (tiene que estar corriendo antes que Streamlit, porque el frontend le pega por HTTP):
 
 ```bash
 uvicorn api.main:app --reload --port 8000
@@ -81,7 +85,7 @@ uvicorn api.main:app --reload --port 8000
 
 La documentación queda en `http://localhost:8000/docs`.
 
-Levantar la interfaz de chat:
+Levantar la interfaz de chat (con la API ya corriendo):
 
 ```bash
 streamlit run frontend/app.py
@@ -96,6 +100,14 @@ python evaluation/evaluate.py
 ```
 
 Los resultados detallados quedan en `evaluation/eval_results.json`.
+
+## Tests
+
+Tests unitarios para el chunker y el endpoint `/health` (no necesitan Ollama ni Groq corriendo):
+
+```bash
+pytest tests/
+```
 
 ## Con Docker
 
@@ -151,5 +163,6 @@ El retriever descarta chunks con score de similitud por debajo de `MIN_SCORE` (e
 - El chunking es por página + tokens, no es semantic chunking. Dividir por encabezados sería una mejora natural.
 - La API no tiene autenticación, y ya está expuesta a internet en el despliegue de AWS — es el próximo problema a resolver ahí.
 - No hay Elastic IP en el despliegue, así que la URL pública no es 100% estable si la instancia se reinicia.
+- Cobertura de tests todavía parcial: cubre chunking y el endpoint `/health`, pero falta testear `rag_chain.ask()` y `/chat` con mocking de las llamadas a Ollama/Groq.
 
 Ideas para seguir mejorando: comparar distintos tamaños de chunk, métricas más serias con RAGAS en vez de solo keyword matching, y streaming de la respuesta en vez de esperar a que termine todo el mensaje.
