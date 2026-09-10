@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Correr tests
+        env:
+          GROQ_API_KEY: fake-key-para-tests
+          GROQ_BASE_URL: https://api.groq.com/openai/v1
+          OLLAMA_BASE_URL: http://localhost:11434/v1
+        run: pytest tests/
