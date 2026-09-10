@@ -1,17 +1,16 @@
 """
 app.py
-Interfaz de chat con Streamlit. Llama directamente a rag_chain.ask()
-(no necesita que la API FastAPI esté corriendo).
+Interfaz de chat con Streamlit. Llama a la API de FastAPI vía HTTP
+(la API FastAPI debe estar corriendo en API_URL).
 
 Correr con:
     streamlit run frontend/app.py
 """
 import os
-import sys
+import requests
 import streamlit as st
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "generation"))
-from rag_chain import ask
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="DocChat - Esteban Coveñas", layout="centered")
 st.title("DocChat - Pregúntame sobre Esteban Coveñas")
@@ -38,7 +37,14 @@ if question:
     with st.chat_message("assistant"):
         with st.spinner("Buscando en los documentos..."):
             try:
-                result = ask(question)
+                response = requests.post(
+                    f"{API_URL}/chat",
+                    json={"question": question},
+                    timeout=60,
+                )
+                response.raise_for_status()
+                result = response.json()
+
                 st.markdown(result["answer"])
                 if result["sources"]:
                     with st.expander("Fuentes usadas"):
@@ -49,8 +55,15 @@ if question:
                     "content": result["answer"],
                     "sources": result["sources"],
                 })
-            except RuntimeError as e:
-                st.error(str(e))
+            except requests.exceptions.ConnectionError:
+                st.error(
+                    f"No se pudo conectar con la API en {API_URL}. "
+                    "¿Está corriendo FastAPI? (uvicorn api.main:app)"
+                )
+            except requests.exceptions.Timeout:
+                st.error("La API tardó demasiado en responder (timeout).")
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error al llamar a la API: {e}")
 
 with st.sidebar:
     st.header("Info")
