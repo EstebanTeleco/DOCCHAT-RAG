@@ -1,5 +1,7 @@
 # DocChat RAG
 
+![Tests](https://github.com/EstebanTeleco/DOCCHAT-RAG/actions/workflows/tests.yml/badge.svg)
+
 Chatbot que responde preguntas sobre mí (Esteban Coveñas) citando la fuente exacta (archivo y página). Indexa 3 documentos: mi CV, un detalle de mis proyectos y una sección "sobre mí" con intereses personales (3 PDFs incluidos en `data/raw_pdfs`).
 
 Está corriendo en vivo en mi página personal, en el botón **"Pregúntale a mi IA"**.
